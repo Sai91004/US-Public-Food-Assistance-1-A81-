@@ -1,0 +1,71 @@
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(gridExtra)
+
+# Step 1: Analysis Framework
+print("=== ANALYSIS FRAMEWORK ===")
+print("Research Question: Is there a difference in the mean poverty percentage for children ages 0-17 between California and Texas?")
+print("\nHypotheses:")
+print("H0: No difference in mean poverty percentage between states")
+print("H1: There is a difference in mean poverty percentage between states")
+
+# Step 2: Data Loading and Preprocessing
+print("\n=== DATA PREPARATION ===")
+data_path <- "H:\\assisgnment\\hertfordshire assignment\\Basha Team\\team 81 link\\Basha\\Dataset\\est13_16us\\est16us.csv"
+raw_data <- read.csv(data_path)
+
+cleaned_data <- raw_data %>%
+    filter(!is.na(Geographic.Information),
+           Geographic.Information != "State FIPS Code",
+           Geographic.Information != "United States") %>%
+    select(
+        State = Geographic.Information,
+        Name = Unnamed..2,
+        Poverty_Rate = Age.0.17,
+        CI_Lower = Unnamed..10,
+        CI_Upper = Unnamed..11
+    ) %>%
+    mutate(
+        Poverty_Rate = as.numeric(gsub("%", "", Poverty_Rate)),
+        CI_Lower = as.numeric(gsub("%", "", CI_Lower)),
+        CI_Upper = as.numeric(gsub("%", "", CI_Upper))
+    )
+
+# Step 3: Statistical Analysis
+print("\n=== STATISTICAL ANALYSIS ===")
+comparison_data <- cleaned_data %>%
+    filter(Name %in% c("California", "Texas"))
+
+# Create bar plot for comparison of mean poverty rates
+bar_plot <- ggplot(comparison_data, aes(x = Name, y = Poverty_Rate, fill = Name)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(
+    title = "Comparison of Poverty Rate Between California and Texas",
+    x = "State",
+    y = "Poverty Rate (%)"
+  ) +
+  theme_minimal()
+
+# Step 4: Data Visualisation - Histogram with Bell Curve
+histogram_plot <- ggplot(cleaned_data, aes(x = Poverty_Rate)) +
+  geom_histogram(aes(y = ..density..), binwidth = 2, fill = "skyblue", color = "black", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = mean(cleaned_data$Poverty_Rate, na.rm = TRUE),
+                                         sd = sd(cleaned_data$Poverty_Rate, na.rm = TRUE)),
+                color = "red", size = 1) +
+  labs(
+    title = "Histogram of Poverty Rate with Normal Bell Curve",
+    x = "Poverty Rate (%)",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+# Save individual plots to the same path
+ggsave("H:/assisgnment/hertfordshire assignment/Basha Team/team 81 link/Basha/Dataset/poverty_rate_histogram.png", plot = histogram_plot, width = 10, height = 6)
+ggsave("H:/assisgnment/hertfordshire assignment/Basha Team/team 81 link/Basha/Dataset/poverty_rate_comparison.png", plot = bar_plot, width = 10, height = 6)
+
+# Combine the two plots in one figure
+grid.arrange(histogram_plot, bar_plot, ncol = 2)
+
+# Save the combined plots
+ggsave("H:/assisgnment/hertfordshire assignment/Basha Team/team 81 link/Basha/Dataset/poverty_rate_comparison_combined.png", plot = last_plot(), width = 10, height = 6)
